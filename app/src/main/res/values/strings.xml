@@ -1,0 +1,17 @@
+<resources>
+  <string name="app_name">Car Fax Project</string>
+  <string name="call_dealer">\"Call dealer \"</string>
+  <string name="imageloader" translatable="false">image loading from url</string>
+  <string name="dollar_sign">$</string>
+  <string name="fetching_data">Fetching data</string>
+  <string name="vehicle_info">Vehicle Info</string>
+  <string name="location">Location</string>
+  <string name="exterior_color">Exterior Color</string>
+  <string name="interior_color">Interior Color</string>
+  <string name="drive_type">Drive type</string>
+  <string name="transmission">Transmission</string>
+  <string name="body">Body Style</string>
+  <string name="engine">Engine</string>
+  <string name="fuel">Fuel</string>
+  <string name="mileage_symbol">mi</string>
+</resources>
