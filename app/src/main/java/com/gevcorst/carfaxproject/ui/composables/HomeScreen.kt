@@ -64,18 +64,24 @@ fun PreviewAppBar() {
 @Composable
 fun ProfileCard(listing: Listings) {
     Surface() {
-        ConstraintLayout(modifier = Modifier.wrapContentSize()) {
+        ConstraintLayout(modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()) {
             val (image, contents) = createRefs()
             ProfilePicture(carListing = listing, modifier = Modifier.constrainAs(image) {
-                top.linkTo(parent.bottom, margin = 16.dp)
-                start.linkTo(parent.start, margin = 16.dp)
-                end.linkTo(contents.start)
-            })
-            ProfileContent(listing = listing, modifier = Modifier.constrainAs(contents) {
-                top.linkTo(image.top)
-                bottom.linkTo(parent.bottom)
+                top.linkTo(parent.top, margin = 16.dp)
+                start.linkTo(parent.start, margin = 32.dp)
                 end.linkTo(parent.end)
+
             })
+            /*ProfileContent(listing = listing, modifier = Modifier.constrainAs(contents) {
+                end.linkTo(parent.end, margin = 16.dp)
+                top.linkTo(parent.top, margin = 16.dp)
+
+                //start.linkTo(image.end)
+                bottom.linkTo(parent.bottom, margin = 16.dp)
+
+            })*/
         }
     }
 }
@@ -168,6 +174,7 @@ fun ProfileCardPreview() {
 private fun AppBar(viewModel: CarListViewModel) {
     val listings = viewModel.carListings.observeAsState(emptyList())
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
+    val serviceStatus = viewModel.serviceStatus.observeAsState(ServiceStatus.IDLE)
     Scaffold(
         scaffoldState = scaffoldState,
         topBar = {
@@ -178,31 +185,38 @@ private fun AppBar(viewModel: CarListViewModel) {
         },
         drawerContent = { Text(text = "Drawer Menu 1") },
         content = {
-            Divider(modifier = Modifier.padding(10.dp))
-            val serviceStatus = viewModel.serviceStatus.observeAsState(ServiceStatus.IDLE)
-            CustomCircularProgressBar()
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.White)
-            ) {
-                when (serviceStatus.value) {
-                    ServiceStatus.IDLE, ServiceStatus.LOADING -> {
-                        items(listings.value) { listing ->
-                            CustomCircularProgressBar()
+            ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                val(lazyColum) = createRefs()
+                LazyColumn(
+                    modifier = Modifier
+                        .constrainAs(lazyColum){
+                            top.linkTo(parent.top, margin = 16.dp)
+                            start.linkTo(parent.start, margin = 16.dp)
+                            end.linkTo(parent.end, margin = 16.dp)
+                            bottom.linkTo(parent.bottom, margin = 16.dp)
                         }
-                    }
-                    ServiceStatus.DONE -> {
-                        items(listings.value) { listing ->
-                            ProfileCard(listing = listing)
+                        .padding(16.dp)
+                        .background(Color.White)
+                        .fillMaxSize()
+                ) {
+                    when (serviceStatus.value) {
+                        ServiceStatus.IDLE, ServiceStatus.LOADING -> {
+                            items(listings.value) { listing ->
+                                CustomCircularProgressBar()
+                            }
                         }
-                    }
-                    else -> {
+                        ServiceStatus.DONE -> {
+                            items(listings.value) { listing ->
+                                ProfileCard(listing = listing)
+                            }
+                        }
+                        else -> {
+
+                        }
 
                     }
 
                 }
-
             }
         },
         bottomBar = { BottomAppBar(backgroundColor = MaterialTheme.colors.primary) { Text("Bottom App Bar") } }
