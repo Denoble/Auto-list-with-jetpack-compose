@@ -1,24 +1,28 @@
 package com.gevcorst.carfaxproject.ui
 
+import android.widget.Toast
+import androidx.compose.animation.core.*
 import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
-import androidx.compose.animation.graphics.res.animatedVectorResource
-import androidx.compose.animation.graphics.res.rememberAnimatedVectorPainter
-import androidx.compose.animation.graphics.vector.AnimatedImageVector
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -35,9 +39,19 @@ import com.gevcorst.carfaxproject.viewmodel.ServiceStatus
 
 @Composable
 fun Home(viewModel: CarListViewModel) {
+    val listings = viewModel.carListings.observeAsState(emptyList())
+    val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
+    val serviceStatus = viewModel.serviceStatus.observeAsState(ServiceStatus.IDLE)
+    val selectedIndex = remember { mutableStateOf(0) }
+    var restApiServiceCallDone by remember { mutableStateOf(false) }
+
     MaterialTheme() {
-        Scaffold(topBar = { AppBar(viewModel) }) {
-        }
+        Scaffold(scaffoldState = scaffoldState,
+            topBar = { TopAppBar() },
+            content = {
+                LoadItemList(listings = listings,serviceStatus)
+            },
+            bottomBar = { BottomNavigationBar(selectedIndex = selectedIndex) })
     }
 }
 
@@ -169,45 +183,9 @@ fun ProfileCardPreview() {
     }
 }
 
-@Composable
-private fun AppBar(viewModel: CarListViewModel) {
-    val listings = viewModel.carListings.observeAsState(emptyList())
-    val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
-    val serviceStatus = viewModel.serviceStatus.observeAsState(ServiceStatus.IDLE)
-    Scaffold(
-        scaffoldState = scaffoldState,
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(id = R.string.app_name)) },
-                backgroundColor = MaterialTheme.colors.primary
-            )
-        },
-        content = {
-            when (serviceStatus.value) {
-                ServiceStatus.IDLE, ServiceStatus.LOADING -> {
-                    LoadingAnimations()
-                }
-                ServiceStatus.DONE -> {
-                    LoadItemList(listings = listings)
-                }
-                else -> {
-                    LoadingAnimations()
-                }
-
-            }
-        },
-        bottomBar = {
-            BottomAppBar(backgroundColor = MaterialTheme.colors.primary) {
-                Text(
-                    stringResource(id = R.string.app_name)
-                )
-            }
-        }
-    )
-}
 
 @Composable
-fun LoadItemList(listings: State<List<Listings>>) {
+fun LoadItemList(listings: State<List<Listings>>, serviceStatus: State<ServiceStatus>) {
     ConstraintLayout(modifier = Modifier.fillMaxSize()) {
         val (lazyColum) = createRefs()
         LazyColumn(
@@ -224,23 +202,106 @@ fun LoadItemList(listings: State<List<Listings>>) {
 
         ) {
             items(listings.value) { listing ->
-                ProfileContent(listing = listing, modifier = Modifier.wrapContentSize())
+                when(serviceStatus.value){
+                    ServiceStatus.IDLE,
+                        ServiceStatus.SENDING,
+                        ServiceStatus.LOADING ->{
+                            RotationDemo()
+                        }
+                    ServiceStatus.DONE ->{
+                        ProfileContent(listing = listing, modifier = Modifier.wrapContentSize())
+                    }
+                    else ->{
+                    }
+                }
             }
-
         }
+    }
+
+}
+
+@Composable
+fun RotationDemo() {
+    val infiniteTransition = rememberInfiniteTransition()
+    val angle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(500, easing = LinearEasing)
+
+        )
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Image(
+            painter = painterResource(R.drawable.loading_img),
+            contentDescription = "fan",
+            modifier = Modifier
+                .rotate(angle)
+                .padding(10.dp)
+                .fillMaxSize()
+        )
+    }
+}
+
+@Composable
+fun TopAppBar() {
+    TopAppBar(
+        title = { Text(stringResource(id = R.string.app_name)) },
+        backgroundColor = MaterialTheme.colors.primary,
+        navigationIcon = {
+            Icon(
+                Icons.Default.Home,
+                contentDescription = stringResource(id = R.string.top_app_bar_home_icon_descriptions)
+            )
+        }
+    )
+}
+
+@Composable
+fun BottomNavigationBar(selectedIndex: MutableState<Int>) {
+    BottomNavigation(elevation = 10.dp) {
+
+        BottomNavigationItem(icon = {
+            Icon(imageVector = Icons.Default.Home, "")
+        },
+            label = { Text(text = "Home") },
+            selected = (selectedIndex.value == 0),
+            onClick = {
+                selectedIndex.value = 0
+            })
+
+        BottomNavigationItem(icon = {
+            Icon(imageVector = Icons.Default.Favorite, "")
+        },
+            label = { Text(text = "Favorite") },
+            selected = (selectedIndex.value == 1),
+            onClick = {
+                selectedIndex.value = 1
+            })
+
+        BottomNavigationItem(icon = {
+            Icon(imageVector = Icons.Default.Person, "")
+        },
+            label = { Text(text = "Profile") },
+            selected = (selectedIndex.value == 2),
+            onClick = {
+                selectedIndex.value = 2
+            })
     }
 }
 
 @OptIn(ExperimentalAnimationGraphicsApi::class)
 @Composable
 fun LoadingAnimations() {
-
-    val image = AnimatedImageVector.animatedVectorResource(R.drawable.loading_animation)
-    val atEnd by remember { mutableStateOf(false) }
-    Icon(
-        painter = rememberAnimatedVectorPainter(image, atEnd),
-        contentDescription = null,
-        modifier = Modifier.fillMaxSize()
+    CircularProgressIndicator(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(30.dp),
+        strokeWidth = 3.dp, color = MaterialTheme.colors.primary
     )
 }
 
@@ -248,21 +309,6 @@ fun LoadingAnimations() {
 @Preview
 @Composable
 fun LoadingAnimationsPreview() {
-    Box(modifier = Modifier.wrapContentSize()){
-
-        val image = AnimatedImageVector.animatedVectorResource(R.drawable.loading_animation)
-        var atEnd by remember { mutableStateOf(false) }
-        Image(
-            painter = rememberAnimatedVectorPainter(image, atEnd),
-            contentDescription = stringResource(id = R.string.imageloader),
-            modifier = Modifier.wrapContentSize(align = Alignment.Center)
-
-        )
-        DisposableEffect(Unit) {
-            atEnd = !atEnd
-            onDispose {
-            }
-        }
-    }
-
+    LoadingAnimations()
 }
+

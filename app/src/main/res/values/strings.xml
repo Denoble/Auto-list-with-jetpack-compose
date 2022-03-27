@@ -14,4 +14,5 @@
   <string name="engine">Engine</string>
   <string name="fuel">Fuel</string>
   <string name="mileage_symbol">mi</string>
+  <string name="top_app_bar_home_icon_descriptions">Top App bar home Icon</string>
 </resources>
