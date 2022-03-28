@@ -17,12 +17,11 @@ fun CarFaxTheme(darkTheme:Boolean = isSystemInDarkTheme(),
         shapes = CarfaxShapes,
         content = content)
 }
-private val LightColors = lightColors( primary = Red700,
-    primaryVariant = Red900,
-    onPrimary = Color.White,
+val LightColors = lightColors(
+    primary = Red700,
+    primaryVariant = Red800,
     secondary = Red700,
-    secondaryVariant = Red900,
-    onSecondary = Color.White,
+    secondaryVariant = Red700,
     error = Red800,
 )
 
