@@ -1,10 +1,12 @@
 package com.gevcorst.carfaxproject.ui
 
+import android.widget.TextView
 import androidx.compose.animation.core.*
 import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,12 +26,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.codelab.theming.ui.start.theme.bluegrey
@@ -37,6 +46,7 @@ import com.gevcorst.carfaxproject.R
 import com.gevcorst.carfaxproject.model.Listings
 import com.gevcorst.carfaxproject.viewmodel.CarListViewModel
 import com.gevcorst.carfaxproject.viewmodel.ServiceStatus
+import org.w3c.dom.Text
 
 @Composable
 fun Home(viewModel: CarListViewModel) {
@@ -47,10 +57,12 @@ fun Home(viewModel: CarListViewModel) {
     var restApiServiceCallDone by remember { mutableStateOf(false) }
 
     MaterialTheme() {
-        Scaffold(scaffoldState = scaffoldState,
+        Scaffold(scaffoldState = scaffoldState, modifier = Modifier.fillMaxSize(),
             topBar = { TopAppBar() },
             content = {
-                LoadItemList(listings = listings, serviceStatus)
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    AppNavigation(carListings = listings, serviceStatus = serviceStatus)
+                }
             },
             bottomBar = { BottomNavigationBar(selectedIndex = selectedIndex) })
     }
@@ -67,34 +79,55 @@ fun PreviewAppBar() {
 }
 
 @Composable
-fun ProfileCard(listing: Listings) {
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        ProfileContent(listing = listing, modifier = Modifier.wrapContentSize())
+fun CarDetailsCard(listing: Listings) {
+    Surface(modifier = Modifier.fillMaxSize()) {
+        ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+            val (image, year, make, model, trim, price, mileage, location) = createRefs()
+        }
     }
+
 }
 
 @Composable
-fun ProfilePicture(carListing: Listings, modifier: Modifier) {
+fun AppNavigation(carListings: State<List<Listings>>, serviceStatus: State<ServiceStatus>) {
+    val navController = rememberNavController()
+    NavHost(navController = navController, startDestination = "carlists") {
+        composable("carlists") {
+
+            CarItemList(
+                listings = carListings,
+                serviceStatus = serviceStatus,
+                navHostController = navController
+            )
+        }
+        composable("carDetails") {
+            CarDetailsCard(listing = carListings.value[0])
+        }
+
+    }
     Row(modifier = Modifier.size(130.dp)) {
 
     }
 }
 
 @Composable
-fun ProfileContent(listing: Listings, modifier: Modifier) {
+fun ProfileContent(listing: Listings, clickAction: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .padding(bottom = 48.dp), elevation = 8.dp,
+            .padding(bottom = 48.dp)
+            .clickable(onClick = { clickAction.invoke() }),
+        elevation = 8.dp,
         shape = Shapes.myshape.medium,
         border = BorderStroke(3.dp, bluegrey),
         backgroundColor = bluegrey
     ) {
-        ConstraintLayout(modifier = Modifier.fillMaxSize().padding(bottom = 8.dp)) {
+        ConstraintLayout(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 8.dp)
+        ) {
             val (image, year, make, model, trim, price, mileage, location) = createRefs()
             val url = remember { listing.images.firstPhoto.medium }
             val painter =
@@ -124,27 +157,28 @@ fun ProfileContent(listing: Listings, modifier: Modifier) {
                 painter = painter,
                 contentDescription = stringResource(id = R.string.imageloader)
             )
-            Text(text = listing.year.toString(), modifier = Modifier.constrainAs(year) {
+
+            CustomizedText(text = listing.year.toString(), modifier = Modifier.constrainAs(year) {
                 top.linkTo(image.top, margin = 8.dp)
                 start.linkTo(image.end, margin = 16.dp)
                 width = Dimension.fillToConstraints
                 height = Dimension.wrapContent
-            }, textAlign = TextAlign.Start)
-            Text(text = listing.make, modifier = Modifier.constrainAs(make) {
+            })
+            CustomizedText(text = listing.make, modifier = Modifier.constrainAs(make) {
                 top.linkTo(year.top, margin = 16.dp)
                 start.linkTo(year.end, margin = 16.dp)
                 baseline.linkTo(year.baseline)
                 width = Dimension.fillToConstraints
                 height = Dimension.wrapContent
-            }, textAlign = TextAlign.Start)
-            Text(text = listing.model, modifier = Modifier.constrainAs(model) {
+            })
+            CustomizedText(text = listing.model, modifier = Modifier.constrainAs(model) {
                 top.linkTo(make.top, margin = 16.dp)
                 start.linkTo(make.end, margin = 16.dp)
                 baseline.linkTo(make.baseline)
                 width = Dimension.fillToConstraints
                 height = Dimension.wrapContent
             })
-            Text(text = listing.trim, modifier = Modifier.constrainAs(trim) {
+           CustomizedText(text = listing.trim, modifier = Modifier.constrainAs(trim) {
                 top.linkTo(model.top, margin = 16.dp)
                 start.linkTo(model.end, margin = 16.dp)
                 end.linkTo(parent.end, margin = 8.dp)
@@ -152,7 +186,7 @@ fun ProfileContent(listing: Listings, modifier: Modifier) {
                 width = Dimension.fillToConstraints
                 height = Dimension.wrapContent
             })
-            Text(
+            CustomizedText(
                 text = stringResource(id = R.string.dollar_sign) + listing.currentPrice.toString(),
                 modifier = Modifier.constrainAs(price) {
                     top.linkTo(year.bottom, margin = 16.dp)
@@ -160,7 +194,7 @@ fun ProfileContent(listing: Listings, modifier: Modifier) {
                     width = Dimension.fillToConstraints
                     height = Dimension.wrapContent
                 })
-            Text(
+            CustomizedText(
                 text = listing.currentPrice.toString() + stringResource(id = R.string.mileage_symbol),
                 modifier = Modifier.constrainAs(mileage) {
                     top.linkTo(price.top, margin = 16.dp)
@@ -170,7 +204,7 @@ fun ProfileContent(listing: Listings, modifier: Modifier) {
                     height = Dimension.wrapContent
                 }
             )
-            Text(
+            CustomizedText(
                 text = listing.dealer.city + " " + listing.dealer.state,
                 modifier = Modifier.constrainAs(location) {
                     top.linkTo(price.bottom, margin = 16.dp)
@@ -184,19 +218,13 @@ fun ProfileContent(listing: Listings, modifier: Modifier) {
 
 }
 
-@Preview
-@Composable
-fun ProfileCardPreview() {
-    val viewModel: CarListViewModel by viewModel()
-    val listing = viewModel.carListings.observeAsState(emptyList())
-    for (list in listing.value) {
-        ProfileCard(listing = list)
-    }
-}
-
 
 @Composable
-fun LoadItemList(listings: State<List<Listings>>, serviceStatus: State<ServiceStatus>) {
+fun CarItemList(
+    listings: State<List<Listings>>,
+    serviceStatus: State<ServiceStatus>,
+    navHostController: NavHostController?
+) {
     ConstraintLayout(modifier = Modifier.fillMaxSize()) {
         val (lazyColum) = createRefs()
         LazyColumn(
@@ -220,7 +248,10 @@ fun LoadItemList(listings: State<List<Listings>>, serviceStatus: State<ServiceSt
                         RotationDemo()
                     }
                     ServiceStatus.DONE -> {
-                        ProfileContent(listing = listing, modifier = Modifier.wrapContentSize())
+                        ProfileContent(listing = listing) {
+                            navHostController?.navigate("carDetails")
+
+                        }
                     }
                     else -> {
                     }
@@ -229,6 +260,12 @@ fun LoadItemList(listings: State<List<Listings>>, serviceStatus: State<ServiceSt
         }
     }
 
+}
+
+@Composable
+fun CustomizedText(text:String,modifier: Modifier,textAlign: TextAlign = TextAlign.Start) {
+    Text( text = text, modifier = modifier,style = TextStyle(fontFamily = FontFamily.Serif,
+    fontWeight = FontWeight.Bold, fontSize = 10.sp,))
 }
 
 @Composable
@@ -322,4 +359,3 @@ fun LoadingAnimations() {
 fun LoadingAnimationsPreview() {
     LoadingAnimations()
 }
-
