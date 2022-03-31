@@ -1,6 +1,5 @@
 package com.gevcorst.carfaxproject.ui
 
-import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
 import androidx.compose.foundation.BorderStroke
@@ -22,9 +21,11 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -63,6 +64,7 @@ fun CarDetailsCard(
         it.id == carListingId
     }
     val carName = " ${carList.year} ${carList.make} ${carList.model} ${carList.trim}"
+    val url = carList.images.firstPhoto.large
     Scaffold(topBar = {
         CustomAppBar(title = carName, icon = Icons.Default.ArrowBack) {
             navHostController.navigateUp()
@@ -73,13 +75,22 @@ fun CarDetailsCard(
         }) {
         Surface(modifier = Modifier.fillMaxSize()) {
             val context = LocalContext.current
-            val carList = carLists.first {
-                it.id == carListingId
-            }
-            val carName = " ${carList.year} ${carList.make} ${carList.model} ${carList.trim}"
             ConstraintLayout(modifier = Modifier.fillMaxSize()) {
                 //Toast.makeText(context, carName, Toast.LENGTH_LONG).show()
                 val (image, year, make, model, trim, price, mileage, location) = createRefs()
+                CustomImage(
+                    url = url, contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .constrainAs(image) {
+                            top.linkTo(parent.top, margin = 16.dp)
+                            start.linkTo(parent.start, margin = 16.dp)
+                            end.linkTo(parent.end, margin = 16.dp)
+                            width = Dimension.fillToConstraints
+                            height = Dimension.wrapContent
+                        },
+                )
+
             }
         }
 
@@ -144,20 +155,8 @@ fun ProfileContent(listing: Listings, clickAction: () -> Unit) {
         ) {
             val (image, year, make, model, trim, price, mileage, location) = createRefs()
             val url = remember { listing.images.firstPhoto.medium }
-            val painter =
-                rememberAsyncImagePainter(
-                    ImageRequest.Builder //Used while loading
-                        (LocalContext.current).data(data = url)
-                        .apply(block = fun ImageRequest.Builder.() {
-                            crossfade(true) //Crossfade animation between images
-                            placeholder(R.drawable.loading_animation) //Used while loading
-                            fallback(R.drawable.ic_baseline_broken_image_24) //Used if data is null
-                            error(R.drawable.ic_baseline_broken_image_24) //Used when loading returns with error
-                        }).build()
-                )
-
-
-            Image(
+            CustomImage(
+                url = url,
                 modifier = Modifier
                     .size(80.dp)
                     .clip(RoundedCornerShape(16.dp))
@@ -167,9 +166,6 @@ fun ProfileContent(listing: Listings, clickAction: () -> Unit) {
                         width = Dimension.fillToConstraints
                         height = Dimension.wrapContent
                     },
-                //Use painter in Image composable
-                painter = painter,
-                contentDescription = stringResource(id = R.string.imageloader)
             )
 
             CustomizedText(text = listing.year.toString(), modifier = Modifier.constrainAs(year) {
@@ -260,46 +256,47 @@ fun CarItemList(
     listings: List<Listings>, serviceStatus: ServiceStatus,
     navHostController: NavHostController?
 ) {
-    ConstraintLayout(modifier = Modifier.fillMaxSize()) {
-        val (lazyColum) = createRefs()
-        LazyColumn(
-            modifier = Modifier
-                .constrainAs(lazyColum) {
-                    top.linkTo(parent.top, margin = 16.dp)
-                    start.linkTo(parent.start, margin = 16.dp)
-                    end.linkTo(parent.end, margin = 16.dp)
-                    bottom.linkTo(parent.bottom, margin = 16.dp)
-                    width = Dimension.fillToConstraints
-                    height = Dimension.fillToConstraints
-                }
-                .background(Color.White)
+    when (serviceStatus) {
+        ServiceStatus.IDLE,
+        ServiceStatus.SENDING,
+        ServiceStatus.LOADING -> {
+            RotationDemo()
+            //LoadingAnimations()
+        }
+        ServiceStatus.DONE -> {
+            ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                val (lazyColum) = createRefs()
+                LazyColumn(
+                    modifier = Modifier
+                        .constrainAs(lazyColum) {
+                            top.linkTo(parent.top, margin = 16.dp)
+                            start.linkTo(parent.start, margin = 16.dp)
+                            end.linkTo(parent.end, margin = 16.dp)
+                            bottom.linkTo(parent.bottom, margin = 16.dp)
+                            width = Dimension.fillToConstraints
+                            height = Dimension.fillToConstraints
+                        }
+                        .background(Color.White)
 
-        ) {
-            items(listings) { listing ->
-                when (serviceStatus) {
-                    ServiceStatus.IDLE,
-                    ServiceStatus.SENDING,
-                    ServiceStatus.LOADING -> {
-                        RotationDemo()
-                    }
-                    ServiceStatus.DONE -> {
+                ) {
+                    items(listings) { listing ->
                         ProfileContent(listing = listing) {
                             navHostController?.navigate(Routes.Details.route + "/${listing.id}") {
                                 launchSingleTop = true
-                               /* popUpTo(Routes.Home.route) {
-                                    //inclusive = true
-                                }*/
+                                /* popUpTo(Routes.Home.route) {
+                                     //inclusive = true
+                                 }*/
                             }
 
                         }
-                    }
-                    else -> {
+
                     }
                 }
             }
         }
+        else -> {
+        }
     }
-
 }
 
 @Composable
@@ -402,4 +399,32 @@ fun LoadingAnimations() {
 @Composable
 fun LoadingAnimationsPreview() {
     LoadingAnimations()
+}
+
+@Composable
+fun CustomImage(
+    url: String,
+    contentScale: ContentScale = ContentScale.Fit,
+    modifier: Modifier
+) {
+    val painter =
+        rememberAsyncImagePainter(
+            ImageRequest.Builder //Used while loading
+                (LocalContext.current).data(data = url)
+                .apply(block = fun ImageRequest.Builder.() {
+                    crossfade(true) //Crossfade animation between images
+                    placeholder(R.drawable.loading_animation) //Used while loading
+                    fallback(R.drawable.ic_baseline_broken_image_24) //Used if data is null
+                    error(R.drawable.ic_baseline_broken_image_24) //Used when loading returns with error
+                }).build()
+        )
+
+
+    Image(
+        modifier = modifier,
+        //Use painter in Image composable
+        painter = painter,
+        contentScale = contentScale,
+        contentDescription = stringResource(id = R.string.imageloader)
+    )
 }

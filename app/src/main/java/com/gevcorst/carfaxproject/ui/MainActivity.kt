@@ -25,7 +25,6 @@ class MainActivity : ComponentActivity() {
             val carListViewModel: CarListViewModel by viewModels()
             carListViewModel.updateList(context = context)
             val lists = carListViewModel.carListings.observeAsState(emptyList())
-            val error = carListViewModel.errorMessage.observeAsState("")
             window.navigationBarColor =
                 resources.getColor(R.color.purple_700, resources.newTheme())
             AppNavigation(carListViewModel)
