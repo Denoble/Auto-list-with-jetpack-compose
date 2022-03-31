@@ -1,6 +1,6 @@
 package com.gevcorst.carfaxproject.ui
 
-import android.widget.TextView
+import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
 import androidx.compose.foundation.BorderStroke
@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -36,72 +38,84 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.codelab.theming.ui.start.theme.bluegrey
 import com.gevcorst.carfaxproject.R
 import com.gevcorst.carfaxproject.model.Listings
+import com.gevcorst.carfaxproject.model.ResAPIStatus
+import com.gevcorst.carfaxproject.model.Routes
 import com.gevcorst.carfaxproject.viewmodel.CarListViewModel
 import com.gevcorst.carfaxproject.viewmodel.ServiceStatus
-import org.w3c.dom.Text
 
 @Composable
-fun Home(viewModel: CarListViewModel) {
+fun CarDetailsCard(
+    carListingId: String,
+    carLists: List<Listings>,
+    navHostController: NavHostController
+) {
+    val carList = carLists.first {
+        it.id == carListingId
+    }
+    val carName = " ${carList.year} ${carList.make} ${carList.model} ${carList.trim}"
+    Scaffold(topBar = {
+        CustomAppBar(title = carName, icon = Icons.Default.ArrowBack) {
+            navHostController.navigateUp()
+        }
+    },
+        bottomBar = {
+            BottomNavigationBar()
+        }) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            val context = LocalContext.current
+            val carList = carLists.first {
+                it.id == carListingId
+            }
+            val carName = " ${carList.year} ${carList.make} ${carList.model} ${carList.trim}"
+            ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+                //Toast.makeText(context, carName, Toast.LENGTH_LONG).show()
+                val (image, year, make, model, trim, price, mileage, location) = createRefs()
+            }
+        }
+
+    }
+}
+
+@Composable
+fun AppNavigation(
+    viewModel: CarListViewModel
+) {
+    val navController = rememberNavController()
     val listings = viewModel.carListings.observeAsState(emptyList())
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
     val serviceStatus = viewModel.serviceStatus.observeAsState(ServiceStatus.IDLE)
-    val selectedIndex = remember { mutableStateOf(0) }
-    var restApiServiceCallDone by remember { mutableStateOf(false) }
-
-    MaterialTheme() {
-        Scaffold(scaffoldState = scaffoldState, modifier = Modifier.fillMaxSize(),
-            topBar = { TopAppBar() },
-            content = {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    AppNavigation(carListings = listings, serviceStatus = serviceStatus)
-                }
-            },
-            bottomBar = { BottomNavigationBar(selectedIndex = selectedIndex) })
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewAppBar() {
-    Surface(
-        modifier = Modifier.size(100.dp),
-        color = Color.White
-    ) {
-    }
-}
-
-@Composable
-fun CarDetailsCard(listing: Listings) {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        ConstraintLayout(modifier = Modifier.fillMaxSize()) {
-            val (image, year, make, model, trim, price, mileage, location) = createRefs()
-        }
-    }
-
-}
-
-@Composable
-fun AppNavigation(carListings: State<List<Listings>>, serviceStatus: State<ServiceStatus>) {
-    val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "carlists") {
-        composable("carlists") {
-
-            CarItemList(
-                listings = carListings,
-                serviceStatus = serviceStatus,
+    val carListResAPIStatus = ResAPIStatus(
+        listings.value, serviceStatus.value
+    )
+    NavHost(navController = navController, startDestination = Routes.Home.route) {
+        composable(Routes.Home.route) {
+            HomeScreen(
+                carRestAPIStatus = carListResAPIStatus,
+                scaffoldState = scaffoldState,
                 navHostController = navController
             )
         }
-        composable("carDetails") {
-            CarDetailsCard(listing = carListings.value[0])
+        composable(
+            Routes.Details.route + "/{carListingId}", arguments =
+            listOf(navArgument("carListingId") {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val carListingId = backStackEntry.arguments?.getString("carListingId") ?: ""
+            CarDetailsCard(
+                carListingId, carLists = listings.value,
+                navHostController = navController
+            )
         }
 
     }
@@ -178,7 +192,7 @@ fun ProfileContent(listing: Listings, clickAction: () -> Unit) {
                 width = Dimension.fillToConstraints
                 height = Dimension.wrapContent
             })
-           CustomizedText(text = listing.trim, modifier = Modifier.constrainAs(trim) {
+            CustomizedText(text = listing.trim, modifier = Modifier.constrainAs(trim) {
                 top.linkTo(model.top, margin = 16.dp)
                 start.linkTo(model.end, margin = 16.dp)
                 end.linkTo(parent.end, margin = 8.dp)
@@ -218,11 +232,32 @@ fun ProfileContent(listing: Listings, clickAction: () -> Unit) {
 
 }
 
+@Composable
+fun HomeScreen(
+    carRestAPIStatus: ResAPIStatus,
+    scaffoldState: ScaffoldState,
+    navHostController: NavHostController
+) {
+    val carLists = carRestAPIStatus.carLists
+    val serviceStatus: ServiceStatus = carRestAPIStatus.status
+    Scaffold(modifier = Modifier.fillMaxSize(), scaffoldState = scaffoldState,
+        topBar = {
+            CustomAppBar(
+                title = stringResource(id = R.string.home_screen_title),
+                icon = Icons.Default.Home, {})
+        }, content = {
+            CarItemList(
+                listings = carLists,
+                serviceStatus = serviceStatus,
+                navHostController = navHostController
+            )
+        },
+        bottomBar = { BottomNavigationBar() })
+}
 
 @Composable
 fun CarItemList(
-    listings: State<List<Listings>>,
-    serviceStatus: State<ServiceStatus>,
+    listings: List<Listings>, serviceStatus: ServiceStatus,
     navHostController: NavHostController?
 ) {
     ConstraintLayout(modifier = Modifier.fillMaxSize()) {
@@ -240,8 +275,8 @@ fun CarItemList(
                 .background(Color.White)
 
         ) {
-            items(listings.value) { listing ->
-                when (serviceStatus.value) {
+            items(listings) { listing ->
+                when (serviceStatus) {
                     ServiceStatus.IDLE,
                     ServiceStatus.SENDING,
                     ServiceStatus.LOADING -> {
@@ -249,7 +284,12 @@ fun CarItemList(
                     }
                     ServiceStatus.DONE -> {
                         ProfileContent(listing = listing) {
-                            navHostController?.navigate("carDetails")
+                            navHostController?.navigate(Routes.Details.route + "/${listing.id}") {
+                                launchSingleTop = true
+                               /* popUpTo(Routes.Home.route) {
+                                    //inclusive = true
+                                }*/
+                            }
 
                         }
                     }
@@ -263,9 +303,13 @@ fun CarItemList(
 }
 
 @Composable
-fun CustomizedText(text:String,modifier: Modifier,textAlign: TextAlign = TextAlign.Start) {
-    Text( text = text, modifier = modifier,style = TextStyle(fontFamily = FontFamily.Serif,
-    fontWeight = FontWeight.Bold, fontSize = 10.sp,))
+fun CustomizedText(text: String, modifier: Modifier, textAlign: TextAlign = TextAlign.Start) {
+    Text(
+        text = text, modifier = modifier, style = TextStyle(
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold, fontSize = 10.sp,
+        ), textAlign = textAlign
+    )
 }
 
 @Composable
@@ -296,23 +340,23 @@ fun RotationDemo() {
 }
 
 @Composable
-fun TopAppBar() {
+fun CustomAppBar(title: String, icon: ImageVector, iconClickAction: () -> Unit) {
     TopAppBar(
-        title = { Text(stringResource(id = R.string.app_name)) },
+        title = { Text(text = title) },
         backgroundColor = MaterialTheme.colors.primary,
         navigationIcon = {
             Icon(
-                Icons.Default.Home,
-                contentDescription = stringResource(id = R.string.top_app_bar_home_icon_descriptions)
+                icon,
+                contentDescription = stringResource(id = R.string.top_app_bar_home_icon_descriptions),
+                modifier = Modifier.clickable(onClick = { iconClickAction.invoke() })
             )
         }
     )
 }
 
 @Composable
-fun BottomNavigationBar(selectedIndex: MutableState<Int>) {
+fun BottomNavigationBar(selectedIndex: MutableState<Int> = remember { mutableStateOf(0) }) {
     BottomNavigation(elevation = 10.dp) {
-
         BottomNavigationItem(icon = {
             Icon(imageVector = Icons.Default.Home, "")
         },

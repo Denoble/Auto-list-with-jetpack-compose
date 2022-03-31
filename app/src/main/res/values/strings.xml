@@ -3,6 +3,7 @@
   <string name="call_dealer">\"Call dealer \"</string>
   <string name="imageloader" translatable="false">image loading from url</string>
   <string name="dollar_sign">$</string>
+  <string name="home_screen_title">Home</string>
   <string name="fetching_data">Fetching data</string>
   <string name="vehicle_info">Vehicle Info</string>
   <string name="location">Location</string>
