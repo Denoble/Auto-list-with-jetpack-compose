@@ -96,7 +96,7 @@ fun CarDetailsCard(
                 )
                 CustomizedText(text = carName, modifier = Modifier.constrainAs(year) {
                     top.linkTo(image.bottom, margin = 16.dp)
-                    start.linkTo(image.start, margin = 16.dp)
+                    start.linkTo(image.start)
                     end.linkTo(image.end, margin = 16.dp)
                     width = Dimension.fillToConstraints
                     height = Dimension.wrapContent
@@ -106,7 +106,7 @@ fun CarDetailsCard(
                     text = stringResource(id = R.string.dollar_sign) + carList.currentPrice.toString(),
                     modifier = Modifier.constrainAs(price) {
                         top.linkTo(year.bottom, margin = 16.dp)
-                        start.linkTo(year.start, margin = 16.dp)
+                        start.linkTo(year.start)
                         width = Dimension.fillToConstraints
                         height = Dimension.wrapContent
                     })
@@ -114,7 +114,7 @@ fun CarDetailsCard(
                     text = carList.currentPrice.toString() + stringResource(id = R.string.mileage_symbol),
                     modifier = Modifier.constrainAs(mileage) {
                         top.linkTo(price.top, margin = 16.dp)
-                        start.linkTo(price.end, margin = 16.dp)
+                        start.linkTo(price.end)
                         baseline.linkTo(price.baseline)
                         width = Dimension.fillToConstraints
                         height = Dimension.wrapContent
