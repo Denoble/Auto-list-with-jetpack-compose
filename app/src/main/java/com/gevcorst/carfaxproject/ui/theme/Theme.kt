@@ -18,8 +18,8 @@ fun CarFaxTheme(darkTheme:Boolean = isSystemInDarkTheme(),
         content = content)
 }
 val LightColors = lightColors(
-    primary = Red700,
-    primaryVariant = Red800,
+    primary = Purple500,
+    primaryVariant = Purple200,
     secondary = Red700,
     secondaryVariant = Red700,
     error = Red800,

@@ -1,5 +1,6 @@
 package com.gevcorst.carfaxproject.ui
 
+import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
 import androidx.compose.foundation.BorderStroke
@@ -21,7 +22,6 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -75,8 +75,12 @@ fun CarDetailsCard(
         }) {
         Surface(modifier = Modifier.fillMaxSize()) {
             val context = LocalContext.current
-            ConstraintLayout(modifier = Modifier.fillMaxSize()) {
-                //Toast.makeText(context, carName, Toast.LENGTH_LONG).show()
+            //Text(text = "Hello $carName!", modifier = Modifier.background(Color.Green))
+            ConstraintLayout(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                Toast.makeText(context, carList.currentPrice.toString(), Toast.LENGTH_LONG).show()
                 val (image, year, make, model, trim, price, mileage, location) = createRefs()
                 CustomImage(
                     url = url, contentScale = ContentScale.Crop,
@@ -90,7 +94,41 @@ fun CarDetailsCard(
                             height = Dimension.wrapContent
                         },
                 )
+                CustomizedText(text = carName, modifier = Modifier.constrainAs(year) {
+                    top.linkTo(image.bottom, margin = 16.dp)
+                    start.linkTo(image.start, margin = 16.dp)
+                    end.linkTo(image.end, margin = 16.dp)
+                    width = Dimension.fillToConstraints
+                    height = Dimension.wrapContent
+                })
 
+                CustomizedText(
+                    text = stringResource(id = R.string.dollar_sign) + carList.currentPrice.toString(),
+                    modifier = Modifier.constrainAs(price) {
+                        top.linkTo(year.bottom, margin = 16.dp)
+                        start.linkTo(year.start, margin = 16.dp)
+                        width = Dimension.fillToConstraints
+                        height = Dimension.wrapContent
+                    })
+                CustomizedText(
+                    text = carList.currentPrice.toString() + stringResource(id = R.string.mileage_symbol),
+                    modifier = Modifier.constrainAs(mileage) {
+                        top.linkTo(price.top, margin = 16.dp)
+                        start.linkTo(price.end, margin = 16.dp)
+                        baseline.linkTo(price.baseline)
+                        width = Dimension.fillToConstraints
+                        height = Dimension.wrapContent
+                    }
+                )
+                CustomizedText(
+                    text = carList.dealer.city + " " + carList.dealer.state,
+                    modifier = Modifier.constrainAs(location) {
+                        top.linkTo(price.bottom, margin = 16.dp)
+                        start.linkTo(price.start)
+                        width = Dimension.fillToConstraints
+                        height = Dimension.wrapContent
+                    }
+                )
             }
         }
 
@@ -304,7 +342,7 @@ fun CustomizedText(text: String, modifier: Modifier, textAlign: TextAlign = Text
     Text(
         text = text, modifier = modifier, style = TextStyle(
             fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.Bold, fontSize = 10.sp,
+            fontWeight = FontWeight.Bold, fontSize = 13.sp,
         ), textAlign = textAlign
     )
 }

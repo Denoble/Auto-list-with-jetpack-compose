@@ -20,7 +20,7 @@ enum class ServiceStatus { SENDING, LOADING, ERROR, DONE, IDLE }
 
 
 @HiltViewModel
-class CarListViewModel @OptIn(ExperimentalCoroutinesApi::class)
+class CarListViewModel @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Inject constructor(
     private val carListRepository: CarListRepository
 ) : ViewModel() {
@@ -33,6 +33,7 @@ class CarListViewModel @OptIn(ExperimentalCoroutinesApi::class)
     val errorMessage: LiveData<String> = _errorMessage
     private val _carListings = MutableLiveData<List<Listings>>(emptyList())
     val carListings: LiveData<List<Listings>> get() = _carListings
+    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     fun getListInDatabase(): Flow<List<Listings>> {
         return flow {
             val listings = carListRepository.carListings
@@ -69,5 +70,10 @@ class CarListViewModel @OptIn(ExperimentalCoroutinesApi::class)
     private fun doesDatabaseExist(context: Context, dbName: String = "carfaxDatabase.db"): Boolean {
         val dbFile: File = context.getDatabasePath(dbName)
         return dbFile.exists()
+    }
+    fun getCarListItem(carLists:List<Listings>,id:String):Listings{
+     return carLists.first { list ->
+         list.id == id
+     }
     }
 }
